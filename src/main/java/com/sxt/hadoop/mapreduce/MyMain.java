@@ -9,20 +9,17 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-/**
- * Created by xiaowu.zhou@tongdun.cn on 2019/4/17.
- */
-public class MyWC {
+
+public class MyMain {
 
     public static void main(String[] args) throws Exception {
 
         Configuration conf = new Configuration(true);
 
         Job job =Job.getInstance(conf);
+        job.setJarByClass(MyMain.class);
 
-        job.setJarByClass(MyWC.class);
-
-        job.setJobName("sxt-wc");
+        job.setJobName("sxt-tianqi");
         Path path = new Path("/user/root/test.txt");
         FileInputFormat.addInputPath(job,path);
 
@@ -33,12 +30,23 @@ public class MyWC {
         }
         FileOutputFormat.setOutputPath(job,output);
 
-        job.setMapperClass(MyMapper.class);
-        job.setReducerClass(MyReducer.class);
-
+        //Map Task
+        job.setMapperClass(TMapper.class);
         //map的kev vaule类型
-        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputKeyClass(TQ.class);
         job.setMapOutputValueClass(IntWritable.class);
+        //分区比较器
+        job.setPartitionerClass(TPartition.class);
+        //排序比较器，80%环形缓冲区溢写，快排
+        job.setSortComparatorClass(TSorterComparator.class);
+
+        //Map阶段的Combine，相当于reduce前置
+        job.setCombinerClass(TReducer.class);
+        job.setCombinerKeyGroupingComparatorClass(TGroupComparator.class);
+
+        //Reduce Task
+        job.setReducerClass(TReducer.class);
+        job.setGroupingComparatorClass(TGroupComparator.class);
 
         //output的key value类型
         job.setOutputKeyClass(Text.class);
@@ -46,8 +54,6 @@ public class MyWC {
 
         // Submit the job, then poll for progress until the job is complete
         job.waitForCompletion(true);
-
-
     }
 
 }
